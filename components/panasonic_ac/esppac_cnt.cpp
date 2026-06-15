@@ -236,19 +236,19 @@ void PanasonicACCNT::control(const climate::ClimateCall &call) {
   }
 
   if (call.get_target_temperature().has_value()) {
-    ESP_LOGV(TAG, "Requested target temp change to %.2f, %.2f including offset", *call.get_target_temperature(), *call.get_target_temperature() - this->current_temperature_offset_);
-    this->cmd[1] = (*call.get_target_temperature() - this->current_temperature_offset_) / TEMPERATURE_STEP;
+    ESP_LOGV(TAG, "Requested target temp change to %.2f", *call.get_target_temperature());
+    this->cmd[1] = *call.get_target_temperature() / TEMPERATURE_STEP;
   }
 
-  if (call.has_custom_fan_mode()) {
+  if (call.get_custom_fan_mode().has_value()) {
     ESP_LOGV(TAG, "Requested fan mode change");
 
-    if (this->get_custom_preset() != "Normal") {
+    if (this->custom_preset.value_or("Normal") != "Normal") {
       ESP_LOGV(TAG, "Resetting preset");
       this->cmd[5] = (this->cmd[5] & 0xF0);  // Clear right nib for normal mode
     }
 
-    const auto fanMode = call.get_custom_fan_mode();
+    const auto &fanMode = *call.get_custom_fan_mode();
 
     if (fanMode == "Automatic")
       this->cmd[3] = 0xA0;
@@ -288,10 +288,10 @@ void PanasonicACCNT::control(const climate::ClimateCall &call) {
     }
   }
 
-  if (call.has_custom_preset()) {
+  if (call.get_custom_preset().has_value()) {
     ESP_LOGV(TAG, "Requested preset change");
 
-    const auto preset = call.get_custom_preset();
+    const auto &preset = *call.get_custom_preset();
 
     if (preset == "Normal")
       this->cmd[5] = (this->cmd[5] & 0xF0);  // Clear right nib for normal mode
@@ -311,8 +311,8 @@ void PanasonicACCNT::set_data(bool set) {
   this->mode = determine_mode(this->data[0]);
   this->set_custom_fan_mode_(determine_fan_speed(this->data[3]));
 
-  StringRef verticalSwing(determine_vertical_swing(this->data[4]));
-  StringRef horizontalSwing(determine_horizontal_swing(this->data[4]));
+  std::string verticalSwing(determine_vertical_swing(this->data[4]));
+  std::string horizontalSwing(determine_horizontal_swing(this->data[4]));
 
   const char *preset = determine_preset(this->data[5]);
   bool nanoex = determine_preset_nanoex(this->data[5]);
@@ -482,7 +482,7 @@ void PanasonicACCNT::handle_packet() {
  * Sensor handling
  */
 
-void PanasonicACCNT::on_vertical_swing_change(const StringRef &swing) {
+void PanasonicACCNT::on_vertical_swing_change(const std::string &swing) {
   if (this->state_ != ACState::Ready)
     return;
 
@@ -513,7 +513,7 @@ void PanasonicACCNT::on_vertical_swing_change(const StringRef &swing) {
   }
 }
 
-void PanasonicACCNT::on_horizontal_swing_change(const StringRef &swing) {
+void PanasonicACCNT::on_horizontal_swing_change(const std::string &swing) {
   if (this->state_ != ACState::Ready)
     return;
 

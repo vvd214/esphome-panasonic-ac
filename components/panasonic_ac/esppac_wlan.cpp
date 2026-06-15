@@ -107,10 +107,10 @@ void PanasonicACWLAN::control(const climate::ClimateCall &call) {
     set_value(0x31, (*call.get_target_temperature() - this->current_temperature_offset_) * 2);
   }
 
-  if (call.has_custom_fan_mode()) {
+  if (call.get_custom_fan_mode().has_value()) {
     ESP_LOGV(TAG, "Requested fan mode change");
 
-    const StringRef fanMode = call.get_custom_fan_mode();
+    const std::string &fanMode = *call.get_custom_fan_mode();
 
     if (fanMode == "Automatic") {
       set_value(0xB2, 0x41);
@@ -161,10 +161,10 @@ void PanasonicACWLAN::control(const climate::ClimateCall &call) {
     }
   }
 
-  if (call.has_custom_preset()) {
+  if (call.get_custom_preset().has_value()) {
     ESP_LOGV(TAG, "Requested preset change");
 
-    const StringRef preset = call.get_custom_preset();
+    const std::string &preset = *call.get_custom_preset();
 
     if (preset == "Normal") {
       set_value(0xB2, 0x41);
@@ -741,7 +741,7 @@ void PanasonicACWLAN::set_value(uint8_t key, uint8_t value) {
  * Sensor handling
  */
 
-void PanasonicACWLAN::on_vertical_swing_change(const StringRef& swing) {
+void PanasonicACWLAN::on_vertical_swing_change(const std::string &swing) {
   if (this->state_ != ACState::Ready)
     return;
 
@@ -761,7 +761,7 @@ void PanasonicACWLAN::on_vertical_swing_change(const StringRef& swing) {
   send_set_command();
 }
 
-void PanasonicACWLAN::on_horizontal_swing_change(const StringRef &swing) {
+void PanasonicACWLAN::on_horizontal_swing_change(const std::string &swing) {
   if (this->state_ != ACState::Ready)
     return;
 

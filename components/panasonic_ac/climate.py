@@ -1,4 +1,5 @@
 from esphome.const import (
+    CONF_ID,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_POWER,
     STATE_CLASS_MEASUREMENT,
@@ -78,17 +79,36 @@ PANASONIC_CNT_SCHEMA = {
     ),
 }
 
+def panasonic_climate_schema(class_):
+    if hasattr(climate, "climate_schema"):
+        return climate.climate_schema(class_)
+    return climate.CLIMATE_SCHEMA.extend({cv.GenerateID(): cv.declare_id(class_)})
+
+
 CONFIG_SCHEMA = cv.typed_schema(
     {
-        CONF_WLAN: climate.climate_schema(PanasonicACWLAN).extend(PANASONIC_COMMON_SCHEMA).extend(uart.UART_DEVICE_SCHEMA),
-        CONF_CNT: climate.climate_schema(PanasonicACCNT).extend(PANASONIC_COMMON_SCHEMA).extend(PANASONIC_CNT_SCHEMA).extend(uart.UART_DEVICE_SCHEMA),
+        CONF_WLAN: panasonic_climate_schema(PanasonicACWLAN)
+        .extend(PANASONIC_COMMON_SCHEMA)
+        .extend(uart.UART_DEVICE_SCHEMA),
+        CONF_CNT: panasonic_climate_schema(PanasonicACCNT)
+        .extend(PANASONIC_COMMON_SCHEMA)
+        .extend(PANASONIC_CNT_SCHEMA)
+        .extend(uart.UART_DEVICE_SCHEMA),
     }
 )
 
 
 async def to_code(config):
-    var = await climate.new_climate(config)
+    if hasattr(climate, "new_climate"):
+        var = await climate.new_climate(config)
+    else:
+        var = cg.new_Pvariable(config[CONF_ID])
+
     await cg.register_component(var, config)
+
+    if not hasattr(climate, "new_climate"):
+        await climate.register_climate(var, config)
+
     await uart.register_uart_device(var, config)
 
     if CONF_HORIZONTAL_SWING_SELECT in config:
