@@ -7,6 +7,9 @@ namespace panasonic_ac {
 
 static const char *const TAG = "panasonic_ac";
 
+static const char *const CUSTOM_FAN_MODES[] = {"Automatic", "1", "2", "3", "4", "5"};
+static const char *const CUSTOM_PRESETS[] = {"Normal", "Powerful", "Quiet"};
+
 climate::ClimateTraits PanasonicAC::traits() {
   auto traits = climate::ClimateTraits();
 
@@ -29,8 +32,8 @@ climate::ClimateTraits PanasonicAC::traits() {
 }
 
 void PanasonicAC::setup() {
-  this->set_supported_custom_fan_modes({"Automatic", "1", "2", "3", "4", "5"});
-  this->set_supported_custom_presets({"Normal", "Powerful", "Quiet"});
+  this->set_supported_custom_fan_modes(CUSTOM_FAN_MODES);
+  this->set_supported_custom_presets(CUSTOM_PRESETS);
 
   // Initialize times
   this->init_time_ = millis();
