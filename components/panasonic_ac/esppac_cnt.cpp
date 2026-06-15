@@ -8,6 +8,8 @@ namespace panasonic_ac {
 namespace CNT {
 
 static const char *const TAG = "panasonic_ac.cz_tacg1";
+static const uint8_t ECO_MASK = 0x40;
+static const uint8_t ECO_MAX_RETRIES = 2;
 
 static climate::ClimateMode determine_mode(uint8_t mode) {
   uint8_t nib1 = (mode >> 4) & 0x0F;  // Left nib for mode
@@ -133,14 +135,7 @@ static bool determine_preset_nanoex(uint8_t preset) {
 }
 
 static bool determine_eco(uint8_t value) {
-  if (value == 0x40)
-    return true;
-  else if (value == 0x00)
-    return false;
-  else {
-    ESP_LOGW(TAG, "Received unknown eco value");
-    return false;
-  }
+  return (value & ECO_MASK) != 0;
 }
 
 static bool determine_econavi(uint8_t value) {
@@ -370,7 +365,7 @@ void PanasonicACCNT::set_data(bool set) {
   this->set_custom_preset_(preset);
 
   this->update_nanoex(nanoex);
-  this->update_eco(eco);
+  this->handle_eco_update_(eco);
   this->update_econavi(econavi);
   this->update_mild_dry(mildDry);
 }
@@ -571,20 +566,58 @@ void PanasonicACCNT::on_eco_change(bool state) {
   if (this->state_ != ACState::Ready)
     return;
 
+  this->pending_eco_command_ = true;
+  this->pending_eco_state_ = state;
+  this->pending_eco_retries_ = 0;
   if (this->cmd.empty()) {
     ESP_LOGV(TAG, "Copying data to cmd");
     this->cmd = this->data;
   }
 
   this->eco_state_ = state;
+  this->set_eco_command_(state);
+}
 
+void PanasonicACCNT::set_eco_command_(bool state) {
+  if (this->cmd.empty()) {
+    ESP_LOGV(TAG, "Copying data to cmd");
+    this->cmd = this->data;
+  }
   if (state) {
     ESP_LOGV(TAG, "Turning eco mode on");
-    this->cmd[8] = 0x40;
+    this->cmd[8] |= ECO_MASK;
   } else {
     ESP_LOGV(TAG, "Turning eco mode off");
-    this->cmd[8] = 0x00;
+    this->cmd[8] &= ~ECO_MASK;
   }
+}
+
+void PanasonicACCNT::handle_eco_update_(bool eco) {
+  if (!this->pending_eco_command_) {
+    this->update_eco(eco);
+    return;
+  }
+
+  if (eco == this->pending_eco_state_) {
+    ESP_LOGV(TAG, "Eco mode command confirmed");
+    this->pending_eco_command_ = false;
+    this->pending_eco_retries_ = 0;
+    this->update_eco(eco);
+    return;
+  }
+
+  if (this->pending_eco_retries_ < ECO_MAX_RETRIES) {
+    this->pending_eco_retries_++;
+    ESP_LOGD(TAG, "Eco mode still reports %s while waiting for %s, retry %u/%u", ONOFF(eco),
+             ONOFF(this->pending_eco_state_), this->pending_eco_retries_, ECO_MAX_RETRIES);
+    this->set_eco_command_(this->pending_eco_state_);
+    return;
+  }
+
+  ESP_LOGW(TAG, "Eco mode command was not confirmed");
+  this->pending_eco_command_ = false;
+  this->pending_eco_retries_ = 0;
+  this->update_eco(eco);
 }
 
 void PanasonicACCNT::on_econavi_change(bool state) {

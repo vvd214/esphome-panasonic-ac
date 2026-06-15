@@ -37,6 +37,9 @@ class PanasonicACCNT : public PanasonicAC {
   // uint8_t data[10];
   std::vector<uint8_t> data = std::vector<uint8_t>(10);  // Stores the data received from the AC
   std::vector<uint8_t> cmd;                              // Used to build next command
+  bool pending_eco_command_ = false;
+  bool pending_eco_state_ = false;
+  uint8_t pending_eco_retries_ = 0;
 
   void handle_poll();
   void handle_cmd();
@@ -48,6 +51,8 @@ class PanasonicACCNT : public PanasonicAC {
 
   bool verify_packet();
   void handle_packet();
+  void set_eco_command_(bool state);
+  void handle_eco_update_(bool eco);
 };
 
 }  // namespace CNT
