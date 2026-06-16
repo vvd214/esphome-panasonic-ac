@@ -22,8 +22,7 @@ climate::ClimateTraits PanasonicAC::traits() {
   traits.set_visual_temperature_step(TEMPERATURE_STEP);
 
   traits.set_supported_modes({climate::CLIMATE_MODE_OFF, climate::CLIMATE_MODE_COOL, climate::CLIMATE_MODE_FAN_ONLY,
-                              climate::CLIMATE_MODE_DRY, climate::CLIMATE_MODE_HEAT,
-                              climate::CLIMATE_MODE_HEAT_COOL});
+                              climate::CLIMATE_MODE_DRY});
   traits.set_supported_custom_fan_modes({"1", "2", "3", "4", "5", "Automatic"});
   traits.set_supported_custom_presets({"Normal", "Powerful", "Quiet"});
 
