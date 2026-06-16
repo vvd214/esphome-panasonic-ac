@@ -6,6 +6,7 @@ namespace esphome {
 namespace panasonic_ac {
 
 static const char *const TAG = "panasonic_ac";
+static const uint32_t STARTUP_POLL_GRACE = 60000;
 
 static const char *const CUSTOM_FAN_MODES[] = {"Automatic", "1", "2", "3", "4", "5"};
 static const char *const CUSTOM_PRESETS[] = {"Normal", "Powerful", "Quiet"};
@@ -35,7 +36,7 @@ climate::ClimateTraits PanasonicAC::traits() {
 void PanasonicAC::setup() {
   // Initialize times
   this->init_time_ = millis();
-  this->last_packet_sent_ = millis();
+  this->last_packet_sent_ = millis() - STARTUP_POLL_GRACE;
 
   ESP_LOGI(TAG, "Panasonic AC component v%s starting...", VERSION);
 }
