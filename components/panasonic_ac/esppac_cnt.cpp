@@ -169,6 +169,8 @@ uint16_t determine_power_consumption(uint8_t byte_28, uint8_t byte_29, uint8_t o
 void PanasonicACCNT::setup() {
   PanasonicAC::setup();
 
+  this->last_packet_sent_ = millis() - POLL_INTERVAL;
+
   ESP_LOGD(TAG, "Using CZ-TACG1 protocol via CN-CNT");
 }
 
